@@ -1,0 +1,90 @@
+import neo4j, { Record as Neo4jRecord } from 'neo4j-driver';
+import dotenv from 'dotenv';
+import { TwitterUser } from './twitter';
+dotenv.config();
+
+const driver = neo4j.driver(
+    process.env.NEO4J_URI!,
+    neo4j.auth.basic(process.env.NEO4J_USERNAME!, process.env.NEO4J_PASSWORD!)
+);
+
+export interface MutualUser {
+  id: string;
+  name: string;
+  userName: string;
+  profile_url: string;
+}
+
+interface MutualFollowingsResponse {
+  mutuals: MutualUser[];
+  status: 'success' | 'error';
+  msg?: string;
+}
+
+const session = driver.session();
+
+export async function storeUsersinNeo4j(mainUserId: string, followings: TwitterUser[]) {
+    for (const user of followings) {
+        // console.log(`Storing in Neo4j:`, user);
+        await session.executeWrite(tx =>
+            tx.run(
+                `
+                MERGE (u1:User {id: $mainUserId})
+                MERGE (u2:User {id: $id})
+                SET u2.name = $name,
+                    u2.userName = $userName,
+                    u2.profile_url = $profile_url
+                MERGE (u1)-[:FOLLOWS]->(u2)
+                `,
+                {
+                    mainUserId,
+                    id: user.id,
+                    name: user.name,
+                    userName: user.userName,
+                    profile_url: user.profile_url,
+                }
+            )
+        );
+    }
+}
+
+export async function getMutualFollowings(userName1: string, userName2: string): Promise<MutualFollowingsResponse> {
+    const session = driver.session();
+
+    const query = `
+    MATCH (u1:User {id: $userName1})-[:FOLLOWS]->(common:User)<-[:FOLLOWS]-(u2:User {id: $userName2})
+    RETURN common.id AS id, common.name AS name, common.userName AS userName, common.profile_url AS profile_url
+    `;
+
+    try {
+        const result = await session.executeRead(tx =>
+            tx.run(query, {userName1, userName2})
+        );
+
+        const mutuals: MutualUser[] = result.records.map((record: Neo4jRecord) => ({
+            id: record.get('id'),
+            name: record.get('name'),
+            userName: record.get('userName'),
+            profile_url: record.get('profile_url'),
+        }));
+
+        return {
+            mutuals,
+            status: 'success',
+        }
+    } catch (error) {
+        console.error(`Error fetching mutual followings: ${error}`);
+        return {
+            mutuals: [],
+            status: 'error',
+            msg: error instanceof Error ? error.message : 'Unknown error',
+        };
+    } finally {
+        await session.close();
+    }
+}
+
+export async function closeNeo4j() {
+    await session.close();
+    await driver.close();
+}
