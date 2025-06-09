@@ -2,8 +2,6 @@ import express from 'express';
 import dotenv from 'dotenv';
 import { fetchAllFollowings } from './twitter';
 import { storeUsersinNeo4j, getMutualFollowings } from './neo4j';
-import { error } from 'console';
-import { json } from 'stream/consumers';
 
 dotenv.config();
 const app = express();
