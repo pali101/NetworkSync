@@ -12,6 +12,7 @@ Network Sync project is part of PLDG (Protocol Labs Dev Guild), where I'm collab
     - `twitter.ts`: Fetch twiter followings via API
     - `neo4j.ts`: Store users and relations in Neo4j and find mutual followings
     - `index.ts`: CLI interface to interact with the system
+- `frontend/`: Next.js app for the user interface. 
 - `tests/`: Contains unit tests for the application.
 - `package.json`: Project dependencies and scripts.
 - `README.md`: Project documentation.
@@ -32,7 +33,7 @@ cp .env.example .env
 # Then fill in your .env file with the appropriate values
 ```
 
-## Usage
+## Backend CLI Usage
 
 ```bash
 # Fetch and display all followings
@@ -44,6 +45,19 @@ npm start sync <twitterUsername>
 # Find mutual followings between two users
 npm start mutual <username1> <username2>
 ```
+
+## Frontend Usage
+```bash
+# Navigate to the frontend directory
+cd frontend
+
+# Install frontend dependencies
+npm install
+
+# Start the Next.js development server
+npm run dev
+```
+Then open your browser and go to `http://localhost:3000` to access the frontend interface.
 
 ## Requirements
 
