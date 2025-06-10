@@ -83,6 +83,11 @@ export default function Home() {
           {error && (
             <div className="text-red-500 text-sm">{error}</div>
           )}
+          {!loading && mutuals.length === 0 && !error && (
+            <div className="text-sm text-gray-600 mt-2">
+              No mutual followings found.
+            </div>
+          )}
           {mutuals.length > 0 && (
             <div className="w-full mt-2">
               <div className="font-semibold mb-1">
