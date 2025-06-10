@@ -50,7 +50,7 @@ export default function Home() {
               Sync your network. Spot mutuals. Accelerate your intros.
             </div>
             <div className="text-gray-600 mb-2">
-              Network Sync helps you instantly identify mutual Twitter connections with anyone - enabling warm introductions and deeper networking, especially within the Protocol Labs community.
+              Network Sync helps you instantly identify mutual X (Formerly Twitter) connections with anyone - enabling warm introductions and deeper networking, especially within the Protocol Labs community.
             </div>
           </div>
           <form
@@ -61,13 +61,13 @@ export default function Home() {
             }}
           >
             <Input
-              placeholder="Enter Twitter username #1"
+              placeholder="Enter X (Formerly Twitter) username #1"
               value={user1}
               onChange={e => setUser1(e.target.value)}
               required
             />
             <Input
-              placeholder="Enter Twitter username #2"
+              placeholder="Enter X (Formerly Twitter) username #2"
               value={user2}
               onChange={e => setUser2(e.target.value)}
               required
@@ -110,7 +110,7 @@ export default function Home() {
         </CardContent>
       </Card>
       <footer className="mt-10 text-gray-400 text-xs">
-        Not affiliated with Twitter. Privacy-friendly.
+        Not affiliated with X (Formerly Twitter). Privacy-friendly.
       </footer>
     </main>
   );
