@@ -1,11 +1,13 @@
 import express from 'express';
 import dotenv from 'dotenv';
+import cors from 'cors';
 import { fetchAllFollowings } from './twitter';
 import { storeUsersinNeo4j, getMutualFollowings } from './neo4j';
 
 dotenv.config();
 const app = express();
 app.use(express.json());
+app.use(cors());
 const PORT = process.env.PORT || 4000;
 
 // Fetch and store followings (trigger sync)
