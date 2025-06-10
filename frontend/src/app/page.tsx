@@ -13,6 +13,8 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [mutuals, setMutuals] = useState<string[]>([]);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<null | { user: string, count: number }>(null);
 
   async function handleFindMutuals() {
     setLoading(true);
@@ -35,6 +37,31 @@ export default function Home() {
       setError("Unable to fetch mutuals. Please try again.");
     }
     setLoading(false);
+  }
+
+  async function handleSync (userName: string) {
+    setSyncing(true);
+    setSyncResult(null);
+    setError('');
+
+    try {
+      const base = process.env.NEXT_PUBLIC_API_BASE;
+      const res = await fetch(`${base}/api/sync`, {
+        method: 'POST',
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({userName}),
+      });
+      const data = await res.json();
+      if (data.status !== "success") {
+        setError(data.error || "Sync failed.");
+      } else {
+        setSyncResult({ user: userName, count: data.count });
+      }
+    } catch {
+      setError("Sync failed. Please try again.");
+    }
+
+    setSyncing(false);
   }
 
   return (
@@ -105,7 +132,23 @@ export default function Home() {
             </div>
           )}
           <div className="w-full text-center mt-2 text-gray-500 text-xs">
-            Need richer results? <span className="underline cursor-pointer">Sync your followings</span>
+            Need richer results? 
+            {user1 ? (
+              <button
+                className="underline cursor-pointer ml-1"
+                disabled={syncing}
+                onClick={() => handleSync(user1)}
+              >
+                {syncing ? "Syncing..." : "Sync your followings"}
+              </button>
+            ) : (
+              <span className="ml-1 text-gray-400">Enter username to sync</span>
+            )}
+            {syncResult && (
+              <div className="mt-2 text-green-600">
+                Synced {syncResult.count} followings for @{syncResult.user}.
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
