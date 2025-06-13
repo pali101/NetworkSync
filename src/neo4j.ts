@@ -81,6 +81,7 @@ export async function storeUsersinNeo4j(mainUserId: string, followings: TwitterU
     } finally {
         await session.close();
     }
+    await session.close();
 }
 
 export async function getMutualFollowings(userName1: string, userName2: string): Promise<MutualFollowingsResponse> {
