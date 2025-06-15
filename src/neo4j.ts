@@ -1,12 +1,13 @@
 import neo4j, { Record as Neo4jRecord } from 'neo4j-driver';
 import dotenv from 'dotenv';
-import { TwitterUser } from './twitter';
+import { fetchAllFollowings, TwitterUser } from './twitter';
 dotenv.config();
 
 const driver = neo4j.driver(
     process.env.NEO4J_URI!,
     neo4j.auth.basic(process.env.NEO4J_USERNAME!, process.env.NEO4J_PASSWORD!)
 );
+const TTL_DAYS = process.env.FOLLOWINGS_TTL_DAYS ? parseInt(process.env.FOLLOWINGS_TTL_DAYS, 10) : 7;
 
 export interface MutualUser {
   id: string;
@@ -118,5 +119,26 @@ export async function getUserLastFetched(userId: string): Promise<string | null>
         return result.records[0].get(`lastFetched`) || null;
     } finally {
         await session.close();
+    }
+}
+
+export async function ensureFreshFollowings(userId: string): Promise<void> {
+    const lastFetched = await getUserLastFetched(userId);
+    let needsSync = false;
+
+    if (!lastFetched) {
+        needsSync = true;
+    } else {
+        const last = new Date(lastFetched);
+        const now = new Date();
+        const MS_PER_DAY = 1000 * 60 * 60 * 24;
+        const ageDays = (now.getTime() - last.getTime()) / MS_PER_DAY;
+        console.log(now.getTime() - last.getTime())
+        if (ageDays > TTL_DAYS) needsSync = true;
+    }
+
+    if (needsSync) {
+        const allFollowings = await fetchAllFollowings(userId);
+        await storeUsersinNeo4j(userId, allFollowings);
     }
 }
