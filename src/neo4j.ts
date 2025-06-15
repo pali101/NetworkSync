@@ -24,6 +24,22 @@ interface MutualFollowingsResponse {
 const session = driver.session();
 
 export async function storeUsersinNeo4j(mainUserId: string, followings: TwitterUser[]) {
+    const timestamp = new Date().toISOString();
+    // Set mainUserId lastFetched
+    await session.executeWrite(tx =>
+        tx.run(
+            `
+            MERGE (u1:User {id: $mainUserId})
+            SET u1.lastFetched = $timestamp
+            `,
+            {
+                mainUserId,
+                timestamp
+            }
+        )
+    );
+
+    // Loop through each following and update details
     for (const user of followings) {
         // console.log(`Storing in Neo4j:`, user);
         await session.executeWrite(tx =>
