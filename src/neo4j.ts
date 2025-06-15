@@ -104,3 +104,19 @@ export async function closeNeo4j() {
     await session.close();
     await driver.close();
 }
+
+export async function getUserLastFetched(userId: string): Promise<string | null> {
+    const session = driver.session();
+    try {
+        const result = await session.executeRead(tx =>
+            tx.run(
+                `MATCH (u:User {id: $userId}) RETURN u.lastFetched as lastFetched`,
+                { userId }
+            )
+        );
+        if (result.records.length === 0) return null;
+        return result.records[0].get(`lastFetched`) || null;
+    } finally {
+        await session.close();
+    }
+}
