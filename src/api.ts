@@ -2,7 +2,7 @@ import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import { fetchAllFollowings } from './twitter';
-import { storeUsersinNeo4j, getMutualFollowings } from './neo4j';
+import { storeUsersinNeo4j, getMutualFollowings, ensureFreshFollowings } from './neo4j';
 
 dotenv.config();
 const app = express();
@@ -36,6 +36,9 @@ app.get('/api/mutual', async (req, res) => {
         return;
     }
     try {
+        await ensureFreshFollowings(user1);
+        await ensureFreshFollowings(user2);
+        
         const result = await getMutualFollowings(user1 as string, user2 as string);
         
         if (result.status === 'error') {
