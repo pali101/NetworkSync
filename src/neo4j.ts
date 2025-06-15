@@ -22,46 +22,50 @@ interface MutualFollowingsResponse {
   msg?: string;
 }
 
-const session = driver.session();
-
 export async function storeUsersinNeo4j(mainUserId: string, followings: TwitterUser[]) {
+    const session = driver.session();
     const timestamp = new Date().toISOString();
-    // Set mainUserId lastFetched
-    await session.executeWrite(tx =>
-        tx.run(
-            `
-            MERGE (u1:User {id: $mainUserId})
-            SET u1.lastFetched = $timestamp
-            `,
-            {
-                mainUserId,
-                timestamp
-            }
-        )
-    );
 
-    // Loop through each following and update details
-    for (const user of followings) {
-        // console.log(`Storing in Neo4j:`, user);
+    try {
+        // Set mainUserId lastFetched
         await session.executeWrite(tx =>
             tx.run(
                 `
                 MERGE (u1:User {id: $mainUserId})
-                MERGE (u2:User {id: $id})
-                SET u2.name = $name,
-                    u2.userName = $userName,
-                    u2.profile_url = $profile_url
-                MERGE (u1)-[:FOLLOWS]->(u2)
+                SET u1.lastFetched = $timestamp
                 `,
                 {
                     mainUserId,
-                    id: user.id,
-                    name: user.name,
-                    userName: user.userName,
-                    profile_url: user.profile_url,
+                    timestamp
                 }
             )
         );
+
+        // Loop through each following and update details
+        for (const user of followings) {
+            // console.log(`Storing in Neo4j:`, user);
+            await session.executeWrite(tx =>
+                tx.run(
+                    `
+                    MERGE (u1:User {id: $mainUserId})
+                    MERGE (u2:User {id: $id})
+                    SET u2.name = $name,
+                        u2.userName = $userName,
+                        u2.profile_url = $profile_url
+                    MERGE (u1)-[:FOLLOWS]->(u2)
+                    `,
+                    {
+                        mainUserId,
+                        id: user.id,
+                        name: user.name,
+                        userName: user.userName,
+                        profile_url: user.profile_url,
+                    }
+                )
+            );
+        }
+    } finally {
+        await session.close();
     }
 }
 
@@ -102,7 +106,6 @@ export async function getMutualFollowings(userName1: string, userName2: string):
 }
 
 export async function closeNeo4j() {
-    await session.close();
     await driver.close();
 }
 
@@ -123,6 +126,7 @@ export async function getUserLastFetched(userId: string): Promise<string | null>
 }
 
 export async function ensureFreshFollowings(userId: string): Promise<void> {
+    console.log(`[debug] ensureFreshFollowings called for ${userId}`);
     const lastFetched = await getUserLastFetched(userId);
     let needsSync = false;
 
@@ -133,7 +137,7 @@ export async function ensureFreshFollowings(userId: string): Promise<void> {
         const now = new Date();
         const MS_PER_DAY = 1000 * 60 * 60 * 24;
         const ageDays = (now.getTime() - last.getTime()) / MS_PER_DAY;
-        console.log(now.getTime() - last.getTime())
+        console.log(`[sync] ${userId} last fetched ${ageDays.toFixed(2)} days ago`);
         if (ageDays > TTL_DAYS) needsSync = true;
     }
 
