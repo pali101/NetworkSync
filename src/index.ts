@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 import { fetchAllFollowings } from './twitter';
-import { storeUsersinNeo4j, getMutualFollowings, closeNeo4j } from './neo4j';
+import { storeUsersinNeo4j, getMutualFollowings, ensureFreshFollowings } from './neo4j';
 
 dotenv.config();
 
@@ -33,6 +33,10 @@ const main = async () => {
                     console.error(`Usage: mutual <username1> <username2>`);
                     process.exit(1);
                 }
+                console.log(`[debug] Ensuring fresh data for ${arg1} and ${arg2}`);
+                await ensureFreshFollowings(arg1);
+                await ensureFreshFollowings(arg2);
+
                 const mutuals = await getMutualFollowings(arg1, arg2);
                 console.log(`Mutual followings (${arg1} and ${arg2}):`);
                 console.log(mutuals);
