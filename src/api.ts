@@ -60,6 +60,11 @@ app.get('/api/followings/:userName', async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
+export default app;
+
+// Only start the server if run directly (not imported by test files)
+if (require.main === module) {
+  app.listen(PORT, () => {
     console.log(`API server listening on port ${PORT}`);
-})
+  });
+}
