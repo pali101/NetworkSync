@@ -52,6 +52,7 @@ export async function storeUsersinNeo4j(mainUserId: string, followings: TwitterU
                     SET u2.name = $name,
                         u2.userName = $userName,
                         u2.profile_url = $profile_url
+                        SET u2.bio = $bio
                     MERGE (u1)-[:FOLLOWS]->(u2)
                     `,
                     {
@@ -60,6 +61,7 @@ export async function storeUsersinNeo4j(mainUserId: string, followings: TwitterU
                         name: user.name,
                         userName: user.userName,
                         profile_url: user.profile_url,
+                        bio: user.bio 
                     }
                 )
             );

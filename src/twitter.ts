@@ -6,6 +6,7 @@ export interface TwitterUser {
     name: string;
     userName: string;
     profile_url: string;
+    bio: string;
 }
 
 interface FollowingsResponse {
@@ -37,6 +38,7 @@ export async function fetchFollowings(userName: string, cursor?: string): Promis
             name: user.name,
             userName: user.userName,
             profile_url: `https://x.com/${user.userName}`,
+            bio: user.description || '',
         }));
 
         // console.log(mappedFollowers);
