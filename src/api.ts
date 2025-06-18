@@ -18,9 +18,8 @@ app.post('/api/sync', async (req, res) => {
         return;
     } 
     try {
-        const allFollowings = await fetchAllFollowings(userName);
-        await storeUsersinNeo4j(userName, allFollowings);
-        res.json({status: 'success', count: allFollowings.length});
+        await ensureFreshFollowings(userName);
+        res.json({status: 'success'});
     } catch (err) {
         res.status(500).json({status: 'error', error: (err as Error).message});
     }
