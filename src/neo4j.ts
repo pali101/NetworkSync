@@ -1,6 +1,6 @@
 import neo4j, { Record as Neo4jRecord } from 'neo4j-driver';
 import dotenv from 'dotenv';
-import { fetchAllFollowings, TwitterUser } from './twitter';
+import { fetchAllFollowings, TwitterUser, fetchTwitterUserInfo } from './twitter';
 dotenv.config();
 
 const driver = neo4j.driver(
@@ -26,51 +26,34 @@ export async function storeUsersinNeo4j(mainUserId: string, followings: TwitterU
     const timestamp = new Date().toISOString();
 
     try {
-        // Fetch main user data using Twitter API
-        const url = `https://api.twitterapi.io/twitter/user/info?userName=${mainUserId}`;
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'x-api-key': process.env.TWITTER_API_TOKEN || '',
-            },
-        });
+        const mainUser = await fetchTwitterUserInfo(mainUserId);
         
-        const json: any = await response.json();
-
-        if (!json?.data) {
-            console.warn(`No main user data returned for "${mainUserId}"`);
-        } else {
-            const mainUser: TwitterUser = {
-                id: json.data.userName.toLowerCase(),
-                name: json.data.name,
-                profile_url: `https://x.com/${json.data.userName}`,
-                bio: json.data.description || '',
-            }
-
-            console.log(`Storing main user "${mainUser.id}" in Neo4j...`);
-
-            // Set main user full info
-            await session.executeWrite(tx =>
-                tx.run(
-                    `
-                    MERGE (u1:User {id: $id})
-                    SET u1.name = $name,
-                        u1.profile_url = $profile_url,
-                        u1.bio = $bio,
-                        u1.lastFetched = $timestamp
-                    `,
-                    {
-                        id: mainUser.id,
-                        name: mainUser.name,
-                        profile_url: mainUser.profile_url,
-                        bio: mainUser.bio,
-                        timestamp
-                    }
-                )
-            );
-            // console.log(`[debug] mainUser.id = ${mainUser.id}`);
-            // console.log(`[debug] mainUserId  = ${mainUserId}`);
+        if (!mainUser) {
+            console.warn(`Main user "${mainUserId}" could not be fetched from Twitter API.`);
+            return;
         }
+
+        console.log(`Storing main user "${mainUser.id}" in Neo4j...`);
+
+        // Set main user full info
+        await session.executeWrite(tx =>
+            tx.run(
+                `
+                MERGE (u1:User {id: $id})
+                SET u1.name = $name,
+                    u1.profile_url = $profile_url,
+                    u1.bio = $bio,
+                    u1.lastFetched = $timestamp
+                `,
+                {
+                    id: mainUser.id,
+                    name: mainUser.name,
+                    profile_url: mainUser.profile_url,
+                    bio: mainUser.bio,
+                    timestamp
+                }
+            )
+        );
 
         // Loop through each following and update details
         for (const user of followings) {
@@ -175,5 +158,37 @@ export async function ensureFreshFollowings(userId: string): Promise<void> {
     if (needsSync) {
         const allFollowings = await fetchAllFollowings(userId);
         await storeUsersinNeo4j(userId, allFollowings);
+    }
+}
+
+export async function storeSingleUserInNeo4j(userId: string): Promise<void> {
+    const session = driver.session();
+    const user: TwitterUser | null = await fetchTwitterUserInfo(userId);
+
+    if(!user) return;
+
+    const timestamp = new Date().toISOString();
+
+        try {
+        await session.executeWrite(tx =>
+            tx.run(
+                `
+                MERGE (u:User {id: $id})
+                SET u.name = $name,
+                    u.profile_url = $profile_url,
+                    u.bio = $bio,
+                    u.lastFetched = $timestamp
+                `,
+                {
+                    id: user.id,
+                    name: user.name,
+                    profile_url: user.profile_url,
+                    bio: user.bio,
+                    timestamp
+                }
+            )
+        );
+    } finally {
+        await session.close();
     }
 }

@@ -2,7 +2,7 @@ import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import { fetchAllFollowings } from './twitter';
-import { storeUsersinNeo4j, getMutualFollowings, ensureFreshFollowings } from './neo4j';
+import { getMutualFollowings, ensureFreshFollowings, storeSingleUserInNeo4j } from './neo4j';
 
 dotenv.config();
 const app = express();
@@ -59,6 +59,22 @@ app.get('/api/followings/:userName', async (req, res) => {
         res.json({status: 'success', followings: users});
     } catch (err) {
         res.status(500).json({status: 'error', error : (err as Error).message});
+    }
+});
+
+// Fetch and store user details (single user)
+app.post('/api/user/store', async(req, res) => {
+    const userName = (req.body?.userName ?? '').toLowerCase();
+    if (!userName) {
+        res.status(400).json({error: 'userName required'});
+        return;
+    }
+
+    try {
+        await storeSingleUserInNeo4j(userName);
+        res.json({ status: 'success', userId: userName});
+    } catch (err) {
+        res.status(404).json({ status: 'error', error: (err as Error).message });
     }
 });
 

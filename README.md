@@ -46,6 +46,31 @@ npm start sync <twitterUsername>
 npm start mutual <username1> <username2>
 ```
 
+## API Endpoints
+
+### `GET /api/mutual?user1=alice&user2=bob` 
+Finds mutual followings between two Twitter users.
+
+### `POST /api/sync`
+Syncs a user's followings with the Neo4j database.
+
+Request body should contain:
+```json
+{
+  "userName": "twitterUsername"
+}
+```
+
+### `POST /api/user/store`
+Stores a Twitter user in the Neo4j database.
+
+Request body should contain:
+```json
+{
+  "userName": "twitterUsername"
+}
+```
+
 ## Frontend Usage
 ```bash
 # Navigate to the frontend directory
