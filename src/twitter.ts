@@ -4,7 +4,6 @@ dotenv.config();
 export interface TwitterUser {
     id: string;
     name: string;
-    userName: string;
     profile_url: string;
     bio: string;
 }
@@ -34,9 +33,8 @@ export async function fetchFollowings(userName: string, cursor?: string): Promis
         console.log(`Received ${json.followings?.length || 0} followings from TwitterAPI.io`);
 
         const mappedFollowers: TwitterUser[] = (json.followings || []).map((user: any) => ({
-            id: user.id,
+            id: user.userName.toLowerCase(),
             name: user.name,
-            userName: user.userName,
             profile_url: `https://x.com/${user.userName}`,
             bio: user.description || '',
         }));
@@ -75,8 +73,9 @@ export async function fetchAllFollowings(userName: string): Promise<TwitterUser[
         const response = await fetchFollowings(userName, cursor);
 
         if (response.status !== 'success') {
-            console.error(`API error: ${response.msg}`);
-            break;
+            const errorMsg = `Twitter API error for "${userName}" while fetching followings: ${response.msg}`;
+            console.error(errorMsg);
+            throw new Error(errorMsg);
         }
 
         allFollowings = allFollowings.concat(response.followings);

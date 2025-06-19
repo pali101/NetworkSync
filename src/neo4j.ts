@@ -12,7 +12,6 @@ const TTL_DAYS = process.env.FOLLOWINGS_TTL_DAYS ? parseInt(process.env.FOLLOWIN
 export interface MutualUser {
   id: string;
   name: string;
-  userName: string;
   profile_url: string;
 }
 
@@ -27,19 +26,51 @@ export async function storeUsersinNeo4j(mainUserId: string, followings: TwitterU
     const timestamp = new Date().toISOString();
 
     try {
-        // Set mainUserId lastFetched
-        await session.executeWrite(tx =>
-            tx.run(
-                `
-                MERGE (u1:User {id: $mainUserId})
-                SET u1.lastFetched = $timestamp
-                `,
-                {
-                    mainUserId,
-                    timestamp
-                }
-            )
-        );
+        // Fetch main user data using Twitter API
+        const url = `https://api.twitterapi.io/twitter/user/info?userName=${mainUserId}`;
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'x-api-key': process.env.TWITTER_API_TOKEN || '',
+            },
+        });
+        
+        const json: any = await response.json();
+
+        if (!json?.data) {
+            console.warn(`No main user data returned for "${mainUserId}"`);
+        } else {
+            const mainUser: TwitterUser = {
+                id: json.data.userName.toLowerCase(),
+                name: json.data.name,
+                profile_url: `https://x.com/${json.data.userName}`,
+                bio: json.data.description || '',
+            }
+
+            console.log(`Storing main user "${mainUser.id}" in Neo4j...`);
+
+            // Set main user full info
+            await session.executeWrite(tx =>
+                tx.run(
+                    `
+                    MERGE (u1:User {id: $id})
+                    SET u1.name = $name,
+                        u1.profile_url = $profile_url,
+                        u1.bio = $bio,
+                        u1.lastFetched = $timestamp
+                    `,
+                    {
+                        id: mainUser.id,
+                        name: mainUser.name,
+                        profile_url: mainUser.profile_url,
+                        bio: mainUser.bio,
+                        timestamp
+                    }
+                )
+            );
+            // console.log(`[debug] mainUser.id = ${mainUser.id}`);
+            // console.log(`[debug] mainUserId  = ${mainUserId}`);
+        }
 
         // Loop through each following and update details
         for (const user of followings) {
@@ -50,16 +81,14 @@ export async function storeUsersinNeo4j(mainUserId: string, followings: TwitterU
                     MERGE (u1:User {id: $mainUserId})
                     MERGE (u2:User {id: $id})
                     SET u2.name = $name,
-                        u2.userName = $userName,
-                        u2.profile_url = $profile_url
-                        SET u2.bio = $bio
+                        u2.profile_url = $profile_url,
+                        u2.bio = $bio
                     MERGE (u1)-[:FOLLOWS]->(u2)
                     `,
                     {
                         mainUserId,
                         id: user.id,
                         name: user.name,
-                        userName: user.userName,
                         profile_url: user.profile_url,
                         bio: user.bio 
                     }
@@ -87,7 +116,6 @@ export async function getMutualFollowings(userName1: string, userName2: string):
         const mutuals: MutualUser[] = result.records.map((record: Neo4jRecord) => ({
             id: record.get('id'),
             name: record.get('name'),
-            userName: record.get('userName'),
             profile_url: record.get('profile_url'),
         }));
 
@@ -128,6 +156,7 @@ export async function getUserLastFetched(userId: string): Promise<string | null>
 }
 
 export async function ensureFreshFollowings(userId: string): Promise<void> {
+    userId = userId.toLowerCase();
     console.log(`[debug] ensureFreshFollowings called for ${userId}`);
     const lastFetched = await getUserLastFetched(userId);
     let needsSync = false;
