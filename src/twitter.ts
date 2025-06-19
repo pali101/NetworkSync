@@ -73,8 +73,9 @@ export async function fetchAllFollowings(userName: string): Promise<TwitterUser[
         const response = await fetchFollowings(userName, cursor);
 
         if (response.status !== 'success') {
-            console.error(`API error: ${response.msg}`);
-            break;
+            const errorMsg = `Twitter API error for "${userName}" while fetching followings: ${response.msg}`;
+            console.error(errorMsg);
+            throw new Error(errorMsg);
         }
 
         allFollowings = allFollowings.concat(response.followings);
