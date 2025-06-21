@@ -22,8 +22,12 @@ export async function fetchTwitterUserInfo(userName: string): Promise<TwitterUse
 
     const json: any = await response.json();
 
-    if (json.status === 'error' || !json.data) {
+    if (json.status === 'error') {
         throw new Error(`HTTP error ${response.status} while fetching "${userName}"`);
+    }
+
+    if (!json.data) {
+        throw new Error(`No data received from TwitterAPI.io for user: "${userName}"`);
     }
 
     const data = json.data;
