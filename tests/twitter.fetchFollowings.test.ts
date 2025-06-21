@@ -1,4 +1,4 @@
-import { fetchFollowings, fetchAllFollowings, fetchTwitterUserInfo } from "../src/twitter";
+import { fetchFollowings } from "../src/twitter/fetchFollowings";
 
 describe('fetchFollowings', () => {
     beforeEach(() => {
