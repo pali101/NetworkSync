@@ -3,6 +3,9 @@ dist/
 .env
 .DS_Store
 
+*.js
+*.js.map
+
 # Ignore frontend build artifacts
 frontend/.next/
 frontend/node_modules/

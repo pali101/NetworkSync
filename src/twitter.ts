@@ -8,7 +8,7 @@ export interface TwitterUser {
     bio: string;
 }
 
-interface FollowingsResponse {
+export interface FollowingsResponse {
     followings: TwitterUser[];
     has_next_page: boolean;
     next_cursor?: string;
