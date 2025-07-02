@@ -1,7 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
-import { fetchAllFollowings } from './twitter';
+import { fetchAllFollowings } from './twitter/fetchAllFollowings';
 import { getMutualFollowings, ensureFreshFollowings, storeSingleUserInNeo4j } from './neo4j';
 
 dotenv.config();

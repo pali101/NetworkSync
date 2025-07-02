@@ -1,6 +1,9 @@
 import neo4j, { Record as Neo4jRecord } from 'neo4j-driver';
 import dotenv from 'dotenv';
-import { fetchAllFollowings, TwitterUser, fetchTwitterUserInfo } from './twitter';
+import { fetchAllFollowings } from './twitter/fetchAllFollowings';
+import { TwitterUser } from './twitter/fetchFollowings';
+import { fetchTwitterUserInfo } from './twitter/fetchTwitterUserInfo';
+
 dotenv.config();
 
 const driver = neo4j.driver(
