@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import { fetchAllFollowings } from './twitter/fetchAllFollowings';
 import { TwitterUser } from './twitter/fetchFollowings';
 import { fetchTwitterUserInfo } from './twitter/fetchTwitterUserInfo';
+import logger from './logger';
 
 dotenv.config();
 
@@ -29,14 +30,15 @@ export async function storeUsersinNeo4j(mainUserId: string, followings: TwitterU
     const timestamp = new Date().toISOString();
 
     try {
+        logger.info(`Starting to store users in Neo4j for main user: ${mainUserId}`);
         const mainUser = await fetchTwitterUserInfo(mainUserId);
         
         if (!mainUser) {
-            console.warn(`Main user "${mainUserId}" could not be fetched from Twitter API.`);
+            logger.warn(`Main user "${mainUserId}" could not be fetched from Twitter API.`);
             return;
         }
 
-        console.log(`Storing main user "${mainUser.id}" in Neo4j...`);
+        logger.info(`Storing main user "${mainUser.id}" in Neo4j...`);
 
         // Set main user full info
         await session.executeWrite(tx =>
@@ -58,6 +60,7 @@ export async function storeUsersinNeo4j(mainUserId: string, followings: TwitterU
             )
         );
 
+        logger.info(`Processing ${followings.length} followings for user ${mainUserId}`);
         // Loop through each following and update details
         for (const user of followings) {
             // console.log(`Storing in Neo4j:`, user);
@@ -81,6 +84,10 @@ export async function storeUsersinNeo4j(mainUserId: string, followings: TwitterU
                 )
             );
         }
+        logger.info(`Successfully stored ${followings.length} followings for user ${mainUserId}`);
+    } catch (error) {
+        logger.error(`Error storing users in Neo4j for ${mainUserId}: ${error}`);
+        throw error;
     } finally {
         await session.close();
     }
@@ -88,6 +95,7 @@ export async function storeUsersinNeo4j(mainUserId: string, followings: TwitterU
 
 export async function getMutualFollowings(userName1: string, userName2: string): Promise<MutualFollowingsResponse> {
     const session = driver.session();
+    logger.info(`Fetching mutual followings between ${userName1} and ${userName2}`);
 
     const query = `
     MATCH (u1:User {id: $userName1})-[:FOLLOWS]->(common:User)<-[:FOLLOWS]-(u2:User {id: $userName2})
@@ -105,12 +113,13 @@ export async function getMutualFollowings(userName1: string, userName2: string):
             profile_url: record.get('profile_url'),
         }));
 
+        logger.info(`Found ${mutuals.length} mutual followings between ${userName1} and ${userName2}`);
         return {
             mutuals,
             status: 'success',
         }
     } catch (error) {
-        console.error(`Error fetching mutual followings: ${error}`);
+        logger.error(`Error fetching mutual followings: ${error}`);
         return {
             mutuals: [],
             status: 'error',
@@ -122,11 +131,14 @@ export async function getMutualFollowings(userName1: string, userName2: string):
 }
 
 export async function closeNeo4j() {
+    logger.info('Closing Neo4j driver connection');
     await driver.close();
+    logger.info('Neo4j driver connection closed');
 }
 
 export async function getUserLastFetched(userId: string): Promise<string | null> {
     const session = driver.session();
+    logger.debug(`Getting last fetched timestamp for user: ${userId}`);
     try {
         const result = await session.executeRead(tx =>
             tx.run(
@@ -134,8 +146,16 @@ export async function getUserLastFetched(userId: string): Promise<string | null>
                 { userId }
             )
         );
-        if (result.records.length === 0) return null;
-        return result.records[0].get(`lastFetched`) || null;
+        if (result.records.length === 0) {
+            logger.debug(`No last fetched timestamp found for user: ${userId}`);
+            return null;
+        }
+        const lastFetched = result.records[0].get(`lastFetched`) || null;
+        logger.debug(`Last fetched timestamp for ${userId}: ${lastFetched}`);
+        return lastFetched;
+    } catch (error) {
+        logger.error(`Error getting last fetched timestamp for ${userId}: ${error}`);
+        throw error;
     } finally {
         await session.close();
     }
@@ -143,32 +163,41 @@ export async function getUserLastFetched(userId: string): Promise<string | null>
 
 export async function ensureFreshFollowings(userId: string): Promise<void> {
     userId = userId.toLowerCase();
-    console.log(`[debug] ensureFreshFollowings called for ${userId}`);
+    logger.debug(`ensureFreshFollowings called for ${userId}`);
     const lastFetched = await getUserLastFetched(userId);
     let needsSync = false;
 
     if (!lastFetched) {
+        logger.info(`${userId} has no lastFetched timestamp, needs sync`);
         needsSync = true;
     } else {
         const last = new Date(lastFetched);
         const now = new Date();
         const MS_PER_DAY = 1000 * 60 * 60 * 24;
         const ageDays = (now.getTime() - last.getTime()) / MS_PER_DAY;
-        console.log(`[sync] ${userId} last fetched ${ageDays.toFixed(2)} days ago`);
+        logger.info(`${userId} last fetched ${ageDays.toFixed(2)} days ago`);
         if (ageDays > TTL_DAYS) needsSync = true;
     }
 
     if (needsSync) {
+        logger.info(`Syncing followings for ${userId}`);
         const allFollowings = await fetchAllFollowings(userId);
         await storeUsersinNeo4j(userId, allFollowings);
+        logger.info(`Successfully synced ${allFollowings.length} followings for ${userId}`);
+    } else {
+        logger.info(`${userId} followings are fresh, no sync needed`);
     }
 }
 
 export async function storeSingleUserInNeo4j(userId: string): Promise<void> {
     const session = driver.session();
+    logger.info(`Storing single user in Neo4j: ${userId}`);
     const user: TwitterUser | null = await fetchTwitterUserInfo(userId);
 
-    if(!user) return;
+    if(!user) {
+        logger.warn(`Could not fetch user info for ${userId}`);
+        return;
+    }
 
     const timestamp = new Date().toISOString();
 
@@ -191,6 +220,10 @@ export async function storeSingleUserInNeo4j(userId: string): Promise<void> {
                 }
             )
         );
+        logger.info(`Successfully stored user ${userId} in Neo4j`);
+    } catch (error) {
+        logger.error(`Error storing single user ${userId} in Neo4j: ${error}`);
+        throw error;
     } finally {
         await session.close();
     }
