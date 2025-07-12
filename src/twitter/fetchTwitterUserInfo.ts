@@ -22,8 +22,7 @@ export async function fetchTwitterUserInfo(userName: string): Promise<TwitterUse
         });
 
         if (!response.ok) {
-            logger.error(`Failed to fetch user info for "${userName}": HTTP ${response.status}`);
-            logger.warn(`API request failed with status: ${response.status} for user: "${userName}"`);
+            logger.error(`Failed to fetch user info for "${userName}": HTTP ${response.status}. API request failed.`);
             return null;
         }
 
