@@ -1,0 +1,42 @@
+# Ignore dependencies (they'll be installed fresh in the image)
+node_modules
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+
+# Ignore output and coverage
+dist
+coverage
+*.log
+
+# Ignore test code and configs
+tests
+*.test.ts
+*.test.js
+
+# Ignore local environment/configs
+.env
+.env.*
+
+# Ignore git and repo meta
+.git
+.gitignore
+
+# Ignore editor/OS files
+.DS_Store
+.vscode
+.idea
+
+# Ignore docs/readmes (not needed in image)
+README.md
+*.md
+
+# Ignore Dockerfile itself (not needed in image)
+Dockerfile
+
+# Ignore jest configurations (not needed in image)
+jest.config.js
+jest.config.ts
+
+# Ignore TypeScript build info (not needed in image)
+tsconfig.tsbuildinfo
