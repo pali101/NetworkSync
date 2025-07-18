@@ -1,14 +1,17 @@
 {
   "name": "networksync",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Backend microservice for NetworkSync. Exposes REST API.",
+  "main": "dist/api.js",
   "scripts": {
-    "build": "tsc",
-    "start": "ts-node src/index.ts",
-    "start:api": "ts-node src/api.ts | pino-pretty --single-line",
-    "dev-api": "nodemon src/api.ts",
-    "test": "jest"
+    "build": "tsc --build",
+    "start": "node dist/api.js",
+    "start:dev": "nodemon --exec ts-node src/api.ts",
+    "prestart": "npm run build",
+    "test": "jest",
+    "test:watch": "jest --watchAll",
+    "test:coverage": "jest --coverage",
+    "prepare": "npm run build"
   },
   "author": "Aashish Paliwal",
   "license": "ISC",
