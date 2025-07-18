@@ -150,5 +150,6 @@ if (require.main === module) {
       environment: process.env.NODE_ENV || 'development',
       timestamp: new Date().toISOString()
     });
+    console.log(`API ready at http://localhost:${PORT}/`);
   });
 }
