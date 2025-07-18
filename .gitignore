@@ -5,6 +5,7 @@ dist/
 
 *.js
 *.js.map
+!jest.config.js
 
 # Ignore frontend build artifacts
 frontend/.next/

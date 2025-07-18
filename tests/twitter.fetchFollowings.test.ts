@@ -20,6 +20,9 @@ describe('fetchFollowings', () => {
         };
 
         (global as any).fetch = jest.fn().mockResolvedValue({
+            ok: true,
+            status: 200,
+            statusText: 'OK',
             json: jest.fn().mockResolvedValue(mockResponse),
         });
 
